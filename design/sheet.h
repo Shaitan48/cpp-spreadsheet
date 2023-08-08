@@ -4,9 +4,12 @@
 #include "common.h"
 
 #include <functional>
+#include <map>
 
 class Sheet : public SheetInterface {
 public:
+    Sheet();
+
     ~Sheet();
 
     void SetCell(Position pos, std::string text) override;
@@ -21,14 +24,12 @@ public:
     void PrintValues(std::ostream& output) const override;
     void PrintTexts(std::ostream& output) const override;
 
-    const Cell* GetConcreteCell(Position pos) const;
-    Cell* GetConcreteCell(Position pos);
+	// Можете дополнить ваш класс нужными полями и методами
+    void reclcPrintSize();
 
 private:
-    void MaybeIncreaseSizeToIncludePosition(Position pos);
-    void PrintCells(std::ostream& output,
-                    const std::function<void(const CellInterface&)>& printCell) const;
-    Size GetActualSize() const;
-
-    std::vector<std::vector<std::unique_ptr<Cell>>> cells_;
+	// Можете дополнить ваш класс нужными полями и методами
+    //счачала строки, потом слолбцы
+    std::map<int, std::map<int, std::unique_ptr<Cell>>> _sheet;
+    Size _print_size = Size{0, 0};
 };

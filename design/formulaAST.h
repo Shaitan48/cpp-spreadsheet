@@ -27,7 +27,9 @@ public:
     void PrintFormula(std::ostream& out) const;
 
 private:
-    std::unique_ptr<ASTImpl::Expr> root_expr_;
+    std::unique_ptr<ASTImpl::Expr> _root_expr;
+
+    std::forward_list<Position> _cells;
 };
 
 FormulaAST ParseFormulaAST(std::istream& in);
