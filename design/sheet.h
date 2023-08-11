@@ -30,6 +30,16 @@ public:
 private:
 	// Можете дополнить ваш класс нужными полями и методами
     //счачала строки, потом слолбцы
-    std::map<int, std::map<int, std::unique_ptr<Cell>>> _sheet;
-    Size _print_size = Size{0, 0};
+
+    struct PositionHasher
+    {
+        std::size_t operator()(const Position& pos) const;
+    };
+
+    std::unordered_map<Position, std::unique_ptr<Cell>, PositionHasher> sheet_;
+    Size print_size_ = Size{0, 0};
+
+
+    void ClearCache();
+    bool CheckCircularRef(Position check_pos, const CellInterface* cell) const;
 };

@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include "formula.h"
+#include <optional>
 
 class Cell : public CellInterface {
 public:
@@ -14,39 +15,53 @@ public:
     Value GetValue() const override;
     std::string GetText() const override;
 
+    std::vector<Position> GetReferencedCells() const override;
+    std::optional<double>& GetCache() const;
+    bool IsReferenced() const;
+
 private:
 //можете воспользоваться нашей подсказкой, но это необязательно.
     class Impl{
-        using Value = std::variant<std::monostate, std::string, std::unique_ptr<FormulaInterface>>;
+        //using Value = std::variant<std::monostate, std::string, std::unique_ptr<FormulaInterface>>;
     public:
-        Value& GetChangedValue() {
-            return _value;
-        }
 
-        const Value& GetValue() const {
-            return _value;
-        }
+        virtual Value GetValue() const = 0;
+        virtual const std::string GetText() const = 0;
+        virtual std::vector<Position> GetReferencedCells() const = 0;
 
-    private:
-        Value _value;
 
     };
     class EmptyImpl: public Impl{
     public:
         EmptyImpl() = default;
+        Value GetValue() const override;
+        const std::string GetText() const override;
     };
     class TextImpl: public Impl{
     public:
-        TextImpl(const std::string& text) {
-            GetChangedValue() = text;
-        }
+        TextImpl(const std::string& text):text_(text){};
+        Value GetValue() const override;
+        const std::string GetText() const override;
+    private:
+        std::string text_;
     };
     class FormulaImpl: public Impl {
     public:
-        FormulaImpl(const std::string& text) {
-            GetChangedValue() = ParseFormula(text);
-        }
+        FormulaImpl(const std::string& text);
+
+        Value GetValue() const override;
+        const std::string GetText() const override;
+
+        std::vector<Position> GetReferencedCells() const override;
+
+    private:
+        std::unique_ptr<FormulaInterface> formula_impl_ptr_;
     };
-    std::unique_ptr<Impl> _impl;
+
+    void InvalidateCache();
+
+private:
+    std::unique_ptr<Impl> impl_;
+    mutable std::optional<double> cache_;
 
 };
