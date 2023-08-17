@@ -6,6 +6,7 @@
 
 #include <cassert>
 #include <cmath>
+#include <cfloat>
 #include <memory>
 #include <optional>
 #include <sstream>
@@ -65,14 +66,14 @@ constexpr PrecedenceRule PRECEDENCE_RULES[EP_END][EP_END] = {
     /* EP_DIV */ {PR_BOTH, PR_BOTH, PR_RIGHT, PR_RIGHT, PR_NONE, PR_NONE},
     /* EP_UNARY */ {PR_BOTH, PR_BOTH, PR_NONE, PR_NONE, PR_NONE, PR_NONE},
     /* EP_ATOM */ {PR_NONE, PR_NONE, PR_NONE, PR_NONE, PR_NONE, PR_NONE},
-};
+    };
 
 class Expr {
 public:
     virtual ~Expr() = default;
     virtual void Print(std::ostream& out) const = 0;
     virtual void DoPrintFormula(std::ostream& out, ExprPrecedence precedence) const = 0;
-    virtual double Evaluate(/*добавьте сюда нужные аргументы*/ args) const = 0;
+    virtual double Evaluate(std::function<double(Position*)> function) const = 0;
 
     // higher is tighter
     virtual ExprPrecedence GetPrecedence() const = 0;
@@ -127,23 +128,53 @@ public:
 
     ExprPrecedence GetPrecedence() const override {
         switch (type_) {
-            case Add:
-                return EP_ADD;
-            case Subtract:
-                return EP_SUB;
-            case Multiply:
-                return EP_MUL;
-            case Divide:
-                return EP_DIV;
-            default:
-                // have to do this because VC++ has a buggy warning
-                assert(false);
-                return static_cast<ExprPrecedence>(INT_MAX);
+        case Add:
+            return EP_ADD;
+        case Subtract:
+            return EP_SUB;
+        case Multiply:
+            return EP_MUL;
+        case Divide:
+            return EP_DIV;
+        default:
+            // have to do this because VC++ has a buggy warning
+            assert(false);
+            return static_cast<ExprPrecedence>(INT_MAX);
         }
     }
 
-    double Evaluate(/*добавьте нужные аргументы*/) const override {
-			// Скопируйте ваше решение из предыдущих уроков.
+    double Evaluate(std::function<double(Position*)> args) const override {
+        // Скопируйте ваше решение из предыдущих уроков.
+        double res;
+
+        switch (type_) {
+        case Type::Add:{
+            res = lhs_->Evaluate(args) + rhs_->Evaluate(args);
+            break;}
+        case Type::Multiply:{
+            res = lhs_->Evaluate(args) * rhs_->Evaluate(args);
+            break;}
+        case Type::Subtract:{
+            res = lhs_->Evaluate(args) - rhs_->Evaluate(args);
+            break;}
+        case Type::Divide:{
+            //не уверен что корректно сравнение double с нулем(int), но иначе не работает
+            if(rhs_->Evaluate(args) != 0)
+            {
+                res = lhs_->Evaluate(args) / rhs_->Evaluate(args);
+            }
+            else
+            {
+                throw FormulaError(FormulaError::Category::Div0);
+            }
+            break;}
+        }
+
+        if(std::isfinite(res))
+            return res;
+        else
+            throw FormulaError(FormulaError::Category::Div0);
+
     }
 
 private:
@@ -180,8 +211,18 @@ public:
         return EP_UNARY;
     }
 
-    double Evaluate(/*добавьте нужные аргументы*/ args) const override {
+    double Evaluate(std::function<double(Position*)> args) const override {
         // Скопируйте ваше решение из предыдущих уроков.
+        switch (type_) {
+        case Type::UnaryPlus:{
+            return +operand_->Evaluate(args);
+            break;}
+        case Type::UnaryMinus:{
+            return -operand_->Evaluate(args);
+            break;}
+        }
+        //иначе ругается тренажер
+        return 0.0;
     }
 
 private:
@@ -211,8 +252,10 @@ public:
         return EP_ATOM;
     }
 
-    double Evaluate(/*добавьте нужные аргументы*/ args) const override {
+    double Evaluate(std::function<double(Position*)> args) const override {
         // реализуйте метод.
+        Position pos = *cell_;
+        return args(&pos);
     }
 
 private:
@@ -237,7 +280,7 @@ public:
         return EP_ATOM;
     }
 
-    double Evaluate(/*добавьте нужные аргументы*/ args) const override {
+    double Evaluate(std::function<double(Position*)> args) const override {
         return value_;
     }
 
@@ -391,8 +434,8 @@ void FormulaAST::PrintFormula(std::ostream& out) const {
     root_expr_->PrintFormula(out, ASTImpl::EP_ATOM);
 }
 
-double FormulaAST::Execute(/*добавьте нужные аргументы*/ args) const {
-    return root_expr_->Evaluate(/*добавьте нужные аргументы*/ args);
+double FormulaAST::Execute(std::function<double(Position*)> args) const {
+    return root_expr_->Evaluate(args);
 }
 
 FormulaAST::FormulaAST(std::unique_ptr<ASTImpl::Expr> root_expr, std::forward_list<Position> cells)
