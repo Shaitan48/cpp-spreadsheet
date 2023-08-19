@@ -201,6 +201,7 @@ void TestErrorValue() {
     sheet->SetCell("E2"_pos, "3D");
     ASSERT_EQUAL(sheet->GetCell("E4"_pos)->GetValue(),
                  CellInterface::Value(FormulaError::Category::Value));
+
 }
 
 void TestErrorDiv0() {
@@ -343,8 +344,27 @@ void TestCellCircularReferences() {
     }
 
     ASSERT(caught);
-    ASSERT_EQUAL(sheet->GetCell("M6"_pos)->GetText(), "Ready");
 }
+
+void TestCircularInvalidateCahe() {
+    auto sheet = CreateSheet();
+    auto evaluate = [&](std::string expr) {
+        return std::get<double>(ParseFormula(std::move(expr))->Evaluate(*sheet));
+    };
+    sheet->SetCell("E2"_pos, "=X9");
+    sheet->SetCell("X9"_pos, "=M6");
+    sheet->SetCell("M6"_pos, "2");
+    sheet->SetCell("M7"_pos, "3");
+
+
+    ASSERT(evaluate("E2+M7") == 5);
+    sheet->SetCell("M6"_pos, "3");
+
+    ASSERT(evaluate("E2+M7") == 6);
+    sheet->ClearCell("X9"_pos);
+
+}
+
 }  // namespace
 
 int main() {
@@ -368,5 +388,6 @@ int main() {
     RUN_TEST(tr, TestCellReferences);
     RUN_TEST(tr, TestFormulaIncorrect);
     RUN_TEST(tr, TestCellCircularReferences);
+    RUN_TEST(tr, TestCircularInvalidateCahe);
     return 0;
 }

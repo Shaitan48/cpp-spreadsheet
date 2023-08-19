@@ -26,13 +26,22 @@ void Sheet::SetCell(Position pos, std::string text) {
     else
     {
 
-        auto cell = std::make_unique<Cell>(*this);
+        auto cell = std::make_unique<Cell>(*this, pos);
         cell.get()->Set(text, *this);
 
-        if (!CheckCircularRef(pos, cell.get()))
+        std::set<const CellInterface*> alredyChecked;
+
+        if (!CheckCircularRef(pos, cell.get(),alredyChecked))
             throw CircularDependencyException("circular dependency");
 
         sheet_[pos] = std::move(cell);
+
+        for(auto& cell : sheet_){
+            for(auto& ref : cell.second->GetReferencedCells()){
+                if(ref == pos)
+                    sheet_Dependenses_[pos].insert(cell.first);
+            }
+        }
 
         if(pos.row+1>print_size_.rows)
             print_size_.rows = pos.row+1;
@@ -68,12 +77,12 @@ CellInterface* Sheet::GetCell(Position pos) {
     auto result = sheet_.find(pos);
 
     if (pos.row < print_size_.rows && pos.col < print_size_.cols) {
-    if (result != sheet_.end()) {
-        return result->second.get();
-    }
-    else {
-        return empty_cell_.get();
-    }
+        if (result != sheet_.end()) {
+            return result->second.get();
+        }
+        else {
+            return empty_cell_.get();
+        }
     }
 
     return nullptr;
@@ -86,7 +95,14 @@ void Sheet::ClearCell(Position pos) {
     auto res_row = sheet_.find(pos);
     if(res_row != sheet_.end()){
         sheet_.erase(res_row);
-        recalcPrintSize();
+        RecalcPrintSize();
+
+        sheet_Dependenses_.erase(pos);
+        for(auto& cell : sheet_Dependenses_)
+        {
+            if(cell.second.count(pos)>0)
+                cell.second.erase(pos);
+        }
     }
 
 }
@@ -144,7 +160,7 @@ void Sheet::PrintTexts(std::ostream& output) const {
     }
 }
 
-void Sheet::recalcPrintSize()
+void Sheet::RecalcPrintSize()
 {
     if(sheet_.empty()){
         print_size_ = Size{0, 0};
@@ -162,19 +178,34 @@ void Sheet::recalcPrintSize()
 
 }
 
-bool Sheet::CheckCircularRef(Position check_pos, const CellInterface *cell) const
+std::set<Position> Sheet::GetDependCells(Position checkedCell)
+{
+    auto row = sheet_Dependenses_.find(checkedCell);
+    if(row != sheet_Dependenses_.end())
+    {
+        return row->second;
+    }
+    return std::set<Position>{};
+}
+
+
+bool Sheet::CheckCircularRef(Position check_pos, const CellInterface *cell, std::set<const CellInterface *> &alredyChecked) const
 {
     if (cell == nullptr)
         return true;
 
     std::vector<Position> refCells = cell->GetReferencedCells();
 
-    for (const auto& pos : refCells) {
-        if (check_pos == pos)
-            return false;
-
-        if (!CheckCircularRef(check_pos, GetCell(pos)))
-            return false;
+    auto findRes = alredyChecked.find(cell);
+    if(findRes == alredyChecked.end())
+    {
+        for (const auto& pos : refCells) {
+            if (check_pos == pos)
+                return false;
+            alredyChecked.insert(cell);
+            if (!CheckCircularRef(check_pos, GetCell(pos),alredyChecked))
+                return false;
+        }
     }
 
     return true;

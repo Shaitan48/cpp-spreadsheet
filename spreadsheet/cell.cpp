@@ -1,15 +1,70 @@
 #include "cell.h"
 
+#include "sheet.h"
+
 #include <cassert>
 #include <iostream>
 #include <string>
 #include <optional>
 
+//class Impl{
+//public:
+
+//    virtual CellInterface::Value GetValue() const = 0;
+//    virtual const std::string GetText() const = 0;
+//    virtual std::vector<Position> GetReferencedCells() const = 0;
+//    virtual void InvalidateCache() = 0;
+
+//};
+
+//class EmptyImpl: public Impl{
+//public:
+//    //EmptyImpl() = default;
+//    CellInterface::Value GetValue() const override;
+//    const std::string GetText() const override;
+//    std::vector<Position> GetReferencedCells() const override;
+//    void InvalidateCache() override;
+//};
+
+//class TextImpl: public Impl{
+//public:
+//    TextImpl(const std::string& text);
+//    CellInterface::Value GetValue() const override;
+//    const std::string GetText() const override;
+//    std::vector<Position> GetReferencedCells() const override;
+//    void InvalidateCache() override;
+//private:
+//    std::string text_;
+//};
+
+//class FormulaImpl: public Impl {
+//public:
+//    FormulaImpl(const std::string& text, const SheetInterface& sheet);
+//    CellInterface::Value GetValue() const override;
+//    const std::string GetText() const override;
+//    std::vector<Position> GetReferencedCells() const override;
+//    void InvalidateCache() override;
+
+//private:
+//    std::unique_ptr<FormulaInterface> formula_impl_ptr_;
+//    //SheetInterface& sheetI_;
+//    //Sheet& sheetI_;
+//    const SheetInterface &sheetI_;
+//    mutable std::optional<double> cache_ = std::nullopt;
+//};
 
 // Реализуйте следующие методы
 Cell::Cell(Sheet &sheet)
     :impl_(std::make_unique<EmptyImpl>())
     ,sheet_(sheet)
+{
+
+}
+
+Cell::Cell(Sheet &sheet, Position pos)
+    :impl_(std::make_unique<EmptyImpl>())
+    ,sheet_(sheet)
+    ,pos_(pos)
 {}
 
 Cell::~Cell() {}
@@ -21,23 +76,19 @@ void Cell::Set(std::string text, const SheetInterface& sheet)
         return;
     }
 
-    if(text.front() ==  ESCAPE_SIGN)
+
+    if(text.front() ==  FORMULA_SIGN && static_cast<int>(text.size()) > 1)
+    {
+        //impl_ = std::make_unique<FormulaImpl>(text.substr(1), sheet);
+        impl_ = std::make_unique<FormulaImpl>(text, sheet);
+    }
+    else
     {
         impl_ = std::make_unique<TextImpl>(text);
-    }else
-    {
-        if(text.front() ==  FORMULA_SIGN && static_cast<int>(text.size()) > 1)
-        {
-            //impl_ = std::make_unique<FormulaImpl>(text.substr(1), sheet);
-            impl_ = std::make_unique<FormulaImpl>(text, sheet);
-        }
-        else
-        {
-            impl_ = std::make_unique<TextImpl>(text);
-        }
     }
 
-    void InvalidateCache();
+
+    InvalidateCache(pos_);
 
 }
 
@@ -94,34 +145,30 @@ std::vector<Position> Cell::GetReferencedCells() const
     return impl_->GetReferencedCells();
 }
 
-//bool Cell::CheckCircular(const Position check_pos, const CellInterface* cell) const
-//{
-//    if (cell == nullptr)
-//        return true;
+std::vector<Position> Cell::GetDependentCells() const
+{
+    std::vector<Position> result;
+    for(auto pos : sheet_.GetDependCells(pos_))
+        result.push_back(pos);
+    return result;
+}
 
-//    std::vector<Position> ref_cell_pos = cell->GetReferencedCells();
+void Cell::InvalidateCache(Position pos)
+{
+    CellInterface* cell = sheet_.GetCell(pos);
+    if(cell != nullptr)
+        dynamic_cast<Cell*>(sheet_.GetCell(pos))->InvalidateCache();
+    //cell->InvalidateCache();
 
-//    if (ref_cell_pos.empty())
-//        return true;
-
-//    for (const auto& pos : ref_cell_pos) {
-//        if (check_pos == pos)
-//            return false;
-//        //вот тут не вышло немного.. не смог из sheet_ вытащить const CellInterface* придется переностиь в sheet.cpp
-//          reinterpret_cast вроде как не фэншуй
-//          if (!CheckCircular(check_pos, sheet_)
-//            return false;
-//    }
-
-//    return true;
-//}
+    for(auto& depCells : sheet_.GetDependCells(pos)){
+        InvalidateCache(depCells);
+    }
+}
 
 void Cell::InvalidateCache()
 {
     impl_->InvalidateCache();
 }
-
-
 
 CellInterface::Value Cell::EmptyImpl::GetValue() const
 {
@@ -169,9 +216,11 @@ std::vector<Position> Cell::TextImpl::GetReferencedCells() const
     return std::vector<Position>{};
 }
 
+
 void Cell::TextImpl::InvalidateCache()
 {
-
+    std::string test;
+    test = "ERR";
 }
 
 Cell::FormulaImpl::FormulaImpl(const std::string &text, const SheetInterface &sheet)
@@ -205,6 +254,7 @@ std::vector<Position> Cell::FormulaImpl::GetReferencedCells() const
 {
     return formula_impl_ptr_->GetReferencedCells();
 }
+
 
 void Cell::FormulaImpl::InvalidateCache()
 {

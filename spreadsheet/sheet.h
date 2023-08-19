@@ -25,7 +25,9 @@ public:
     void PrintTexts(std::ostream& output) const override;
 
     // Можете дополнить ваш класс нужными полями и методами
-    void recalcPrintSize();
+    void RecalcPrintSize();
+
+    std::set<Position> GetDependCells(Position checkedCell);
 
 private:
     // Можете дополнить ваш класс нужными полями и методами
@@ -41,8 +43,11 @@ private:
     std::unordered_map<Position, std::unique_ptr<Cell>, PositionHasher> sheet_;
     Size print_size_ = Size{0, 0};
 
+    //позиция, и список позиций на неё ссылающихся
+    std::unordered_map<Position, std::set<Position>, PositionHasher> sheet_Dependenses_;
 
-    bool CheckCircularRef(Position check_pos, const CellInterface* cell) const;
+
+    bool CheckCircularRef(Position check_pos, const CellInterface* cell, std::set<const CellInterface*> &alredyChecked) const;
 
 
 

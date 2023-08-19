@@ -8,7 +8,8 @@ class Sheet;
 
 class Cell : public CellInterface {
 public:
-    Cell(Sheet& sheet);
+    explicit Cell(Sheet& sheet);
+    explicit Cell(Sheet& sheet, Position pos);
     ~Cell();
 
     void Set(std::string text, const SheetInterface &sheet) ;
@@ -18,8 +19,10 @@ public:
     std::string GetText() const override;
 
     std::vector<Position> GetReferencedCells() const override;
+    std::vector<Position> GetDependentCells() const;
 
 //    bool CheckCircular(const Position check_pos, const CellInterface *cell) const;
+    void InvalidateCache(Position pos);
     void InvalidateCache();
 
 
@@ -28,7 +31,6 @@ private:
 
     //можете воспользоваться нашей подсказкой, но это необязательно.
     class Impl{
-        //using Value = std::variant<std::monostate, std::string, std::unique_ptr<FormulaInterface>>;
     public:
 
         virtual Value GetValue() const = 0;
@@ -74,7 +76,14 @@ private:
         mutable std::optional<double> cache_ = std::nullopt;
     };
 
+//    class Impl;
+//    class EmptyImpl;
+//    class TextImpl;
+//    class FormulaImpl;
+
+
 private:
     std::unique_ptr<Impl> impl_;
     Sheet& sheet_;
+    Position pos_;
 };
