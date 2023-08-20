@@ -105,12 +105,13 @@ void Sheet::ClearCell(Position pos) {
         sheet_.erase(res_row);
         RecalcPrintSize();
 
-        sheet_dependenses_.erase(pos);
-        for(auto& cell : sheet_dependenses_)
-        {
-            if(cell.second.count(pos)>0)
-                cell.second.erase(pos);
-        }
+    }
+
+    sheet_dependenses_.erase(pos);
+    for(auto& cell : sheet_dependenses_)
+    {
+        if(cell.second.count(pos)>0)
+            cell.second.erase(pos);
     }
 
 }
