@@ -44,7 +44,8 @@ private:
     Size print_size_ = Size{0, 0};
 
     //позиция, и список позиций на неё ссылающихся
-    std::unordered_map<Position, std::set<Position>, PositionHasher> sheet_Dependenses_;
+    std::unordered_map<Position, std::set<Position>, PositionHasher> sheet_dependenses_;
+    //стиль кода пока-то очень сложно..(если много заглавных - сильно нервничал)
 
 
     bool CheckCircularRef(Position check_pos, const CellInterface* cell, std::set<const CellInterface*> &alredyChecked) const;

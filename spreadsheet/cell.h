@@ -21,9 +21,11 @@ public:
     std::vector<Position> GetReferencedCells() const override;
     std::vector<Position> GetDependentCells() const;
 
+
 //    bool CheckCircular(const Position check_pos, const CellInterface *cell) const;
     void InvalidateCache(Position pos);
     void InvalidateCache();
+    bool IsCahsExists() const;
 
 
 private:
@@ -37,6 +39,7 @@ private:
         virtual const std::string GetText() const = 0;
         virtual std::vector<Position> GetReferencedCells() const = 0;
         virtual void InvalidateCache() = 0;
+        virtual bool IsCahsExists() const = 0;
 
     };
 
@@ -47,6 +50,7 @@ private:
         const std::string GetText() const override;
         std::vector<Position> GetReferencedCells() const override;
         void InvalidateCache() override;
+        bool IsCahsExists() const override;
     };
 
     class TextImpl: public Impl{
@@ -56,6 +60,7 @@ private:
         const std::string GetText() const override;
         std::vector<Position> GetReferencedCells() const override;
         void InvalidateCache() override;
+        bool IsCahsExists() const override;
     private:
         std::string text_;
     };
@@ -67,6 +72,7 @@ private:
         const std::string GetText() const override;
         std::vector<Position> GetReferencedCells() const override;
         void InvalidateCache() override;
+        bool IsCahsExists() const override;
 
     private:
         std::unique_ptr<FormulaInterface> formula_impl_ptr_;

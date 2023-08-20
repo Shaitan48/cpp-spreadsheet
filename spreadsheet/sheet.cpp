@@ -34,14 +34,22 @@ void Sheet::SetCell(Position pos, std::string text) {
         if (!CheckCircularRef(pos, cell.get(),alredyChecked))
             throw CircularDependencyException("circular dependency");
 
+
+        for(auto& position : cell->GetReferencedCells()){
+            sheet_dependenses_[position].insert(pos);
+        }
+
         sheet_[pos] = std::move(cell);
 
-        for(auto& cell : sheet_){
-            for(auto& ref : cell.second->GetReferencedCells()){
-                if(ref == pos)
-                    sheet_Dependenses_[pos].insert(cell.first);
-            }
-        }
+
+//        sheet_dependenses_.erase(pos);
+//        for(auto& cell : sheet_){
+//            for(auto& ref : cell.second->GetReferencedCells()){
+//                if(ref == pos)
+//                    sheet_dependenses_[pos].insert(cell.first);
+//            }
+//        }
+
 
         if(pos.row+1>print_size_.rows)
             print_size_.rows = pos.row+1;
@@ -97,8 +105,8 @@ void Sheet::ClearCell(Position pos) {
         sheet_.erase(res_row);
         RecalcPrintSize();
 
-        sheet_Dependenses_.erase(pos);
-        for(auto& cell : sheet_Dependenses_)
+        sheet_dependenses_.erase(pos);
+        for(auto& cell : sheet_dependenses_)
         {
             if(cell.second.count(pos)>0)
                 cell.second.erase(pos);
@@ -180,8 +188,8 @@ void Sheet::RecalcPrintSize()
 
 std::set<Position> Sheet::GetDependCells(Position checkedCell)
 {
-    auto row = sheet_Dependenses_.find(checkedCell);
-    if(row != sheet_Dependenses_.end())
+    auto row = sheet_dependenses_.find(checkedCell);
+    if(row != sheet_dependenses_.end())
     {
         return row->second;
     }

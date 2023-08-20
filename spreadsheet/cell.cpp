@@ -160,14 +160,23 @@ void Cell::InvalidateCache(Position pos)
         dynamic_cast<Cell*>(sheet_.GetCell(pos))->InvalidateCache();
     //cell->InvalidateCache();
 
-    for(auto& depCells : sheet_.GetDependCells(pos)){
-        InvalidateCache(depCells);
+    for(auto& depPositions : sheet_.GetDependCells(pos)){
+        CellInterface* depcell = sheet_.GetCell(depPositions);
+        if(dynamic_cast<Cell*>(depcell)->IsCahsExists())
+        {
+            InvalidateCache(depPositions);
+        }
     }
 }
 
 void Cell::InvalidateCache()
 {
     impl_->InvalidateCache();
+}
+
+bool Cell::IsCahsExists() const
+{
+    return impl_->IsCahsExists();
 }
 
 CellInterface::Value Cell::EmptyImpl::GetValue() const
@@ -188,6 +197,11 @@ std::vector<Position> Cell::EmptyImpl::GetReferencedCells() const
 void Cell::EmptyImpl::InvalidateCache()
 {
 
+}
+
+bool Cell::EmptyImpl::IsCahsExists() const
+{
+    return false;
 }
 
 Cell::TextImpl::TextImpl(const std::string &text):text_(text){}
@@ -221,6 +235,11 @@ void Cell::TextImpl::InvalidateCache()
 {
     std::string test;
     test = "ERR";
+}
+
+bool Cell::TextImpl::IsCahsExists() const
+{
+    return false;
 }
 
 Cell::FormulaImpl::FormulaImpl(const std::string &text, const SheetInterface &sheet)
@@ -259,6 +278,13 @@ std::vector<Position> Cell::FormulaImpl::GetReferencedCells() const
 void Cell::FormulaImpl::InvalidateCache()
 {
     cache_ = std::nullopt;
+}
+
+bool Cell::FormulaImpl::IsCahsExists() const
+{
+    if(cache_ != std::nullopt)
+        return true;
+    return false;
 }
 
 
