@@ -34,7 +34,7 @@ void Sheet::SetCell(Position pos, std::string text) {
         if (!CheckCircularRef(pos, cell.get(),alredyChecked))
             throw CircularDependencyException("circular dependency");
 
-        sheet_dependenses_[pos].erase(pos);
+        sheet_dependenses_.erase(pos);
         
         for(auto& position : cell->GetReferencedCells()){
             sheet_dependenses_[position].insert(pos);
